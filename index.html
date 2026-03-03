@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阅读专注力评估</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        /* 每行文字容器 */
+        .text-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .char {
+            font-size: 24px;
+            width: 36px;
+            text-align: center;
+            color: #333;
+            transition: color 0.1s;
+        }
+        .char.highlight {
+            color: #667eea;
+            font-weight: bold;
+        }
+        /* 滑动条容器 - 居中，宽度与文字一致 */
+        .slider-row {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+        }
+        .underline-track {
+            width: 180px;  /* 5个字 * 36px = 180px */
+            height: 12px;
+            background: #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            position: relative;
+        }
+        .underline-progress {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 6px 0 0 6px;
+        }
+        .underline-thumb {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 14px;
+            height: 14px;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 50%;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
+        .hint {
+            text-align: center;
+            color: #888;
+            font-size: 13px;
+            margin: 15px 0;
+        }
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-start {
+            background: #28a745;
+            color: white;
+        }
+        .btn-start:hover {
+            background: #218838;
+        }
+        .btn-end {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-end:hover {
+            background: #c82333;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .status {
+            text-align: center;
+            padding: 8px;
+            margin: 15px 0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .status.idle {
+            background: #f0f0f0;
+            color: #666;
+        }
+        .status.recording {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        .result {
+            text-align: left;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: none;
+            line-height: 1.8;
+            font-size: 14px;
+        }
+        .result.show {
+            display: block;
+        }
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .result.fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .result-score {
+            font-size: 36px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .debug-info {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📖 阅读专注力评估</h1>
+
+        <!-- 第一行：春眠不觉晓 -->
+        <div class="text-row" id="row1">
+            <span class="char">春</span>
+            <span class="char">眠</span>
+            <span class="char">不</span>
+            <span class="char">觉</span>
+            <span class="char">晓</span>
+        </div>
+        <div class="slider-row">
+            <div class="underline-track" id="track1" data-row="1">
+                <div class="underline-progress" id="progress1"></div>
+                <div class="underline-thumb" id="thumb1"></div>
+            </div>
+        </div>
+
+        <!-- 第二行：处处闻啼鸟 -->
+        <div class="text-row" id="row2">
+            <span class="char">处</span>
+            <span class="char">处</span>
+            <span class="char">闻</span>
+            <span class="char">啼</span>
+            <span class="char">鸟</span>
+        </div>
+        <div class="slider-row">
+            <div class="underline-track" id="track2" data-row="2">
+                <div class="underline-progress" id="progress2"></div>
+                <div class="underline-thumb" id="thumb2"></div>
+            </div>
+        </div>
+
+        <!-- 第三行：夜来风雨声 -->
+        <div class="text-row" id="row3">
+            <span class="char">夜</span>
+            <span class="char">来</span>
+            <span class="char">风</span>
+            <span class="char">雨</span>
+            <span class="char">声</span>
+        </div>
+        <div class="slider-row">
+            <div class="underline-track" id="track3" data-row="3">
+                <div class="underline-progress" id="progress3"></div>
+                <div class="underline-thumb" id="thumb3"></div>
+            </div>
+        </div>
+
+        <!-- 第四行：花落知多少 -->
+        <div class="text-row" id="row4">
+            <span class="char">花</span>
+            <span class="char">落</span>
+            <span class="char">知</span>
+            <span class="char">多</span>
+            <span class="char">少</span>
+        </div>
+        <div class="slider-row">
+            <div class="underline-track" id="track4" data-row="4">
+                <div class="underline-progress" id="progress4"></div>
+                <div class="underline-thumb" id="thumb4"></div>
+            </div>
+        </div>
+
+        <div class="hint">👆 用鼠标点击并拖动每行下方的横线</div>
+
+        <div class="buttons">
+            <button class="btn btn-start" id="startBtn">▶ 开始阅读</button>
+            <button class="btn btn-end" id="endBtn" disabled>■ 结束阅读</button>
+        </div>
+
+        <div class="status idle" id="status">
+            点击"开始阅读"按钮开始
+        </div>
+
+        <div class="result" id="result">
+            <div class="result-score" id="resultScore"></div>
+            <div id="resultText"></div>
+        </div>
+
+        <div class="debug-info" id="debugInfo">
+            <div>朗读：<span id="speechText">-</span></div>
+            <div>滑动：<span id="coveredText">-</span></div>
+        </div>
+    </div>
+
+    <script>
+        // 每行5个字，四行共20字
+        const ROW_TEXTS = ["春眠不觉晓", "处处闻啼鸟", "夜来风雨声", "花落知多少"];
+
+        // 状态
+        let isRecording = false;
+        let isDragging = false;
+        let currentDragRow = 0;
+        let rowPositions = [0, 0, 0, 0];  // 每行滑动位置（字数）
+        let speechResult = "";
+        let recognition = null;
+
+        // DOM元素
+        const startBtn = document.getElementById('startBtn');
+        const endBtn = document.getElementById('endBtn');
+        const status = document.getElementById('status');
+        const result = document.getElementById('result');
+        const resultScore = document.getElementById('resultScore');
+        const resultText = document.getElementById('resultText');
+        const speechTextEl = document.getElementById('speechText');
+        const coveredTextEl = document.getElementById('coveredText');
+
+        // 初始化每行的字符元素
+        const rowChars = [];
+        for (let i = 1; i <= 4; i++) {
+            const row = document.getElementById('row' + i);
+            rowChars.push(row.querySelectorAll('.char'));
+        }
+
+        // ===== 录音功能 =====
+        function initSpeechRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert("请使用 Chrome 浏览器支持语音识别");
+                return null;
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognizer = new SpeechRecognition();
+
+            recognizer.continuous = true;
+            recognizer.interimResults = false;
+            recognizer.lang = 'zh-CN';
+
+            recognizer.onresult = function(event) {
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        speechResult += event.results[i][0].transcript;
+                        speechTextEl.textContent = speechResult;
+                    }
+                }
+            };
+
+            recognizer.onerror = function(event) {
+                console.log('语音识别错误:', event.error);
+            };
+
+            recognizer.onend = function() {
+                if (isRecording) {
+                    try { recognizer.start(); } catch(e) {}
+                }
+            };
+
+            return recognizer;
+        }
+
+        // ===== 滑动位置检测 =====
+        function updateRowPosition(rowIndex, clientX) {
+            const track = document.getElementById('track' + (rowIndex + 1));
+            const progress = document.getElementById('progress' + (rowIndex + 1));
+            const thumb = document.getElementById('thumb' + (rowIndex + 1));
+
+            const rect = track.getBoundingClientRect();
+            let percent = (clientX - rect.left) / rect.width;
+            percent = Math.max(0, Math.min(1, percent));
+
+            // 更新进度条
+            progress.style.width = (percent * 100) + '%';
+            thumb.style.left = (percent * 100) + '%';
+
+            // 计算对应第几个字
+            const charCount = Math.round(percent * 5);  // 每行5个字
+            rowPositions[rowIndex] = charCount;
+
+            // 高亮该行文字
+            rowChars[rowIndex].forEach((char, index) => {
+                if (index < charCount) {
+                    char.classList.add('highlight');
+                } else {
+                    char.classList.remove('highlight');
+                }
+            });
+
+            updateCoveredText();
+        }
+
+        // 更新滑动覆盖的文本
+        function updateCoveredText() {
+            let covered = "";
+            for (let i = 0; i < 4; i++) {
+                covered += ROW_TEXTS[i].substring(0, rowPositions[i]);
+            }
+            coveredTextEl.textContent = covered || '-';
+        }
+
+        // 获取滑动覆盖的完整文本
+        function getCoveredText() {
+            let covered = "";
+            for (let i = 0; i < 4; i++) {
+                covered += ROW_TEXTS[i].substring(0, rowPositions[i]);
+            }
+            return covered;
+        }
+
+        // 绑定滑动事件
+        for (let i = 1; i <= 4; i++) {
+            const track = document.getElementById('track' + i);
+
+            track.addEventListener('mousedown', (e) => {
+                if (!isRecording) return;
+                isDragging = true;
+                currentDragRow = i;
+                updateRowPosition(i - 1, e.clientX);
+            });
+
+            track.addEventListener('touchstart', (e) => {
+                if (!isRecording) return;
+                isDragging = true;
+                currentDragRow = i;
+                updateRowPosition(i - 1, e.touches[0].clientX);
+            });
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging && isRecording && currentDragRow > 0) {
+                updateRowPosition(currentDragRow - 1, e.clientX);
+            }
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging && isRecording && currentDragRow > 0) {
+                updateRowPosition(currentDragRow - 1, e.touches[0].clientX);
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        // ===== 开始/结束阅读 =====
+        startBtn.addEventListener('click', () => {
+            isRecording = true;
+            speechResult = "";
+            rowPositions = [0, 0, 0, 0];
+
+            // UI更新
+            startBtn.disabled = true;
+            endBtn.disabled = false;
+            status.className = 'status recording';
+            status.textContent = '🔴 录音中... 朗读并滑动';
+
+            // 重置所有行
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById('progress' + i).style.width = '0%';
+                document.getElementById('thumb' + i).style.left = '0%';
+                rowChars[i-1].forEach(c => c.classList.remove('highlight'));
+            }
+
+            // 重置调试信息
+            speechTextEl.textContent = '-';
+            coveredTextEl.textContent = '-';
+
+            // 隐藏结果
+            result.className = 'result';
+
+            // 启动语音识别
+            recognition = initSpeechRecognition();
+            if (recognition) {
+                try {
+                    recognition.start();
+                } catch(e) {
+                    console.log('启动失败');
+                }
+            }
+        });
+
+        endBtn.addEventListener('click', () => {
+            isRecording = false;
+
+            // 先记录当前识别结果
+            const finalSpeechResult = speechResult;
+
+            // 停止语音识别
+            if (recognition) {
+                try {
+                    recognition.stop();
+                } catch(e) {}
+            }
+
+            // UI更新
+            startBtn.disabled = false;
+            endBtn.disabled = true;
+            status.className = 'status idle';
+            status.textContent = '已结束';
+
+            // 延迟获取最终结果
+            setTimeout(() => {
+                speechResult = finalSpeechResult || speechResult;
+                evaluateResult();
+            }, 500);
+        });
+
+        // ===== 模糊对比函数 =====
+        function calculateSimilarity(str1, str2) {
+            if (!str1 && !str2) return 1;
+            if (!str1 || !str2) return 0;
+
+            const clean = (s) => s.replace(/[，。、？！、：；""''（）【】《》]/g, '').replace(/\s/g, '').toLowerCase();
+            const s1 = clean(str1);
+            const s2 = clean(str2);
+
+            if (s1 === s2) return 1;
+            if (s1.length === 0 || s2.length === 0) return 0;
+
+            // 包含关系检查
+            if (s1.includes(s2)) {
+                const ratio = s2.length / s1.length;
+                return Math.min(0.7 + ratio * 0.3, 0.95);
+            }
+            if (s2.includes(s1)) {
+                const ratio = s1.length / s2.length;
+                return Math.min(0.7 + ratio * 0.3, 0.95);
+            }
+
+            // LCS相似度
+            const lcsLength = getLCSLength(s1, s2);
+            const maxLen = Math.max(s1.length, s2.length);
+            const lcsSimilarity = lcsLength / maxLen;
+
+            // 编辑距离
+            const editDistance = getEditDistance(s1, s2);
+            const editSimilarity = 1 - (editDistance / maxLen);
+
+            return Math.max(lcsSimilarity, editSimilarity);
+        }
+
+        function getLCSLength(s1, s2) {
+            const len1 = s1.length;
+            const len2 = s2.length;
+            const dp = Array(len1 + 1).fill(null).map(() => Array(len2 + 1).fill(0));
+
+            for (let i = 1; i <= len1; i++) {
+                for (let j = 1; j <= len2; j++) {
+                    if (s1[i - 1] === s2[j - 1]) {
+                        dp[i][j] = dp[i - 1][j - 1] + 1;
+                    } else {
+                        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                    }
+                }
+            }
+            return dp[len1][len2];
+        }
+
+        function getEditDistance(s1, s2) {
+            const len1 = s1.length;
+            const len2 = s2.length;
+            const dp = Array(len1 + 1).fill(null).map(() => Array(len2 + 1).fill(0));
+
+            for (let i = 0; i <= len1; i++) dp[i][0] = i;
+            for (let j = 0; j <= len2; j++) dp[0][j] = j;
+
+            for (let i = 1; i <= len1; i++) {
+                for (let j = 1; j <= len2; j++) {
+                    if (s1[i - 1] === s2[j - 1]) {
+                        dp[i][j] = dp[i - 1][j - 1];
+                    } else {
+                        dp[i][j] = Math.min(dp[i - 1][j - 1] + 1, dp[i][j - 1] + 1, dp[i - 1][j] + 1);
+                    }
+                }
+            }
+            return dp[len1][len2];
+        }
+
+        function calculateScore(similarity) {
+            if (similarity > 0.9) return 100;
+            if (similarity > 0.8) return 80;
+            if (similarity > 0.6) return 60;
+            if (similarity > 0.4) return 40;
+            return 0;
+        }
+
+        // ===== 评估结果 =====
+        function evaluateResult() {
+            const coveredText = getCoveredText();
+            const speechClean = speechResult.replace(/[，。、？！、：；""''（）【】《》]/g, '').replace(/\s/g, '');
+
+            const similarity = calculateSimilarity(speechClean, coveredText);
+            const similarityPercent = Math.round(similarity * 100);
+            const score = calculateScore(similarity);
+
+            const isFullScore = score === 100;
+
+            result.className = 'result show ' + (isFullScore ? 'success' : 'fail');
+            resultScore.textContent = score + ' 分';
+
+            let resultMessage = '';
+            if (score === 100) {
+                resultMessage = `✓ 满分！相似度 ${similarityPercent}%`;
+            } else if (score === 80) {
+                resultMessage = `良好！相似度 ${similarityPercent}%`;
+            } else if (score === 60) {
+                resultMessage = `一般，相似度 ${similarityPercent}%`;
+            } else if (score === 40) {
+                resultMessage = `需努力，相似度 ${similarityPercent}%`;
+            } else {
+                resultMessage = `未达标，相似度 ${similarityPercent}%`;
+            }
+
+            resultText.innerHTML = resultMessage + '<br><br>朗读：' + (speechClean || '(无内容)') + '<br>滑动：' + (coveredText || '(无滑动)');
+
+            console.log('对比结果:', {
+                语音识别: speechClean,
+                滑动覆盖: coveredText,
+                相似度: similarityPercent + '%',
+                得分: score
+            });
+        }
+    </script>
+</body>
+</html>
